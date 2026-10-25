@@ -1,40 +1,35 @@
-var puntosTotalLocal =0;
-var puntosTotalVisita =0;
-var foulesLocal=0;
-var foulesVisita=0;
-             
-function sumarPuntosLocal(){
-    puntosTotalLocal++;
-    console.log(puntosTotalLocal);
-    sumL = document.getElementById("puntosLocal");
-    sumL.innerHTML = puntosTotalLocal;
-
-}
-function sumarPuntosVisita(){
-    puntosTotalVisita++;
-    console.log(puntosTotalVisita);
-    sumV = document.getElementById("puntosVisita");
-    sumV.innerHTML = puntosTotalVisita;
-
-}
-function sumarFoulLocal(){
-    if(foulesLocal>9){
-        foulesLocal=0;
-        foul_L = document.getElementById("foulesLocal");
-        foul_L.innerHTML = foulesLocal;
-        console.log(foulesLocal)
-    }else{
-        foulesLocal++;
-        foul_L = document.getElementById("foulesLocal");
-        foul_L.innerHTML = foulesLocal;
-    }
-    
-    
-    
-}
-function sumarFoulVisita(){
-    foulesVisita++;
-    foul_V = document.getElementById("foulesVisita");
-    foul_V.innerHTML = foulesVisita;
-}
-
+(()=>{"use strict";
+const KEY="cae-scoreboard-v2",fresh=()=>({status:"setup",date:new Date().toISOString().slice(0,10),venue:"",homeName:"LOCAL",awayName:"VISITA",period:1,ot:0,kind:"Q",periodMin:10,otMin:5,remaining:600,running:false,half:600,halfRunning:false,home:team("h"),away:team("a"),events:[],undo:[],periodScores:[],last:"Sin acciones"});
+function team(prefix){return {coach:"",assistant:"",score:0,fouls:0,players:Array.from({length:12},(_,i)=>({id:prefix+i,no:String(i+1),name:"",active:i<5,points:0,fouls:0,seconds:0,out:false}))}}
+let S;try{S=JSON.parse(localStorage.getItem(KEY))||fresh()}catch{S=fresh()}let stamp=0;
+const $=id=>document.getElementById(id),fmt=n=>String(Math.floor(Math.max(0,n)/60)).padStart(2,"0")+":"+String(Math.max(0,n)%60).padStart(2,"0"),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function save(){localStorage.setItem(KEY,JSON.stringify(S));localStorage.setItem(KEY+"-signal",String(Date.now()));render()}
+function log(type,side="",person="",detail=""){S.events.unshift({id:Date.now()+Math.random(),period:S.kind==="OT"?"OT "+S.ot:"Q"+S.period,time:fmt(S.remaining),team:side?S[side+"Name"]:"",person,type,detail,at:new Date().toISOString()});S.last=type+(person?" · "+person:"")+(detail?" · "+detail:"")}
+function action(label,fn){S.undo.push({before:JSON.stringify(S),label});fn();S.last=label;save()}
+function rosterForm(side,label){let t=S[side];return '<section class="roster"><h3>'+label+'</h3><label>Entrenador<input id="'+side+'Coach" value="'+esc(t.coach)+'"></label><label>Asistente<input id="'+side+'Assistant" value="'+esc(t.assistant)+'"></label><p class="hint">Seleccioná cinco titulares.</p><div class="rosterRows">'+t.players.map((p,i)=>'<div class="rosterRow"><label><input type="checkbox" id="'+side+'Start'+i+'" '+(p.active?'checked':'')+'> Titular</label><input id="'+side+'No'+i+'" value="'+esc(p.no)+'" placeholder="N.º"><input id="'+side+'Name'+i+'" value="'+esc(p.name)+'" placeholder="Nombre"></div>').join("")+'</div><button class="btn" onclick="saveRoster(\''+side+'\')">Guardar plantel</button><button class="btn" onclick="loadRoster(\''+side+'\')">Cargar guardado</button></section>'}
+function gameTeam(side){let t=S[side];return '<section class="card team"><h2>'+esc(S[side+"Name"])+' <small>'+(side==="home"?"LOCAL":"VISITA")+'</small></h2><div class="players">'+t.players.map(p=>'<article class="player '+(p.active?'active ':'')+(p.out?'out':'')+'"><div class="ident"><b>#'+esc(p.no)+'</b><span>'+esc(p.name||"Jugador sin nombre")+'</span><small>'+(p.active?'EN CANCHA':'BANCO')+' · '+p.points+' pts · '+p.fouls+' faltas · '+fmt(p.seconds)+'</small></div><div class="actions"><button onclick="score(\''+side+'\',\''+p.id+'\',1)" '+(!p.active||p.out?'disabled':'')+'>+1</button><button onclick="score(\''+side+'\',\''+p.id+'\',2)" '+(!p.active||p.out?'disabled':'')+'>+2</button><button onclick="score(\''+side+'\',\''+p.id+'\',3)" '+(!p.active||p.out?'disabled':'')+'>+3</button><button onclick="foul(\''+side+'\',\''+p.id+'\')" '+(p.out?'disabled':'')+'>Falta</button><button onclick="sub(\''+side+'\',\''+p.id+'\')">Cambio</button><button onclick="disqualify(\''+side+'\',\''+p.id+'\')">Descalificar</button></div></article>').join("")+'</div><div class="staff"><b>Entrenador:</b> '+esc(t.coach||"—")+' <button class="btn" onclick="staffFoul(\''+side+'\',\'entrenador\')">Técnica</button><b>Asistente:</b> '+esc(t.assistant||"—")+' <button class="btn" onclick="staffFoul(\''+side+'\',\'asistente\')">Técnica</button><button class="btn" onclick="teamFoul(\''+side+'\')">+ Falta de equipo</button></div></section>'}
+function render(){const app=$("app");if(!app)return;$("matchTitle").textContent=S.homeName+" vs "+S.awayName+" · "+S.date;
+if(S.status==="setup"){app.innerHTML='<section class="card"><h2>Configuración del encuentro</h2><div class="grid"><label>Equipo local<input id="homeName" value="'+esc(S.homeName)+'"></label><label>Equipo visitante<input id="awayName" value="'+esc(S.awayName)+'"></label><label>Fecha<input id="date" type="date" value="'+S.date+'"></label><label>Sede<input id="venue" value="'+esc(S.venue)+'"></label><label>Minutos por cuarto<input id="pm" type="number" min="1" value="'+S.periodMin+'"></label><label>Minutos por suplementario<input id="om" type="number" min="1" value="'+S.otMin+'"></label></div><div class="teamsSetup">'+rosterForm("home","Local") + rosterForm("away","Visitante")+'</div><p class="hint">El reloj permanece detenido hasta que el operador lo inicie. Los planteles se guardan en este navegador.</p><button class="btn primary" onclick="setupSave()">Confirmar planteles y titulares</button><button class="btn" onclick="resumeGame()">Volver al partido guardado</button></section>';return}
+app.innerHTML='<section class="score"><div><span>'+esc(S.homeName)+'</span><strong>'+S.home.score+'</strong><small>Faltas equipo: '+S.home.fouls+'</small></div><section><b>'+(S.kind==="OT"?"SUPLEMENTARIO "+S.ot:"CUARTO "+S.period)+'</b><strong id="clock">'+fmt(S.remaining)+'</strong><small>'+(S.running?'RELOJ EN MARCHA':'RELOJ DETENIDO')+'</small><div class="actions"><button class="btn primary" onclick="clockToggle()">'+(S.running?'Pausar reloj':S.status==="ready"?'Comenzar partido':'Iniciar reloj')+'</button><button class="btn" onclick="adjustClock()">Corregir tiempo</button></div></section><div><span>'+esc(S.awayName)+'</span><strong>'+S.away.score+'</strong><small>Faltas equipo: '+S.away.fouls+'</small></div></section><div class="toolbar"><div><small>ÚLTIMA ACCIÓN</small><b>'+esc(S.last)+'</b></div><button class="btn warn" onclick="undoLast()" '+(!S.undo.length?'disabled':'')+'>Deshacer última acción</button></div><div class="teamsGame">'+gameTeam("home")+gameTeam("away")+'</div><div class="lower"><section class="card"><h2>Entretiempo</h2><strong class="halfclock">'+fmt(S.half)+'</strong><p class="hint">El temporizador avisa al terminar; no inicia el reloj de juego.</p><button class="btn" onclick="halfToggle()">Iniciar / pausar entretiempo</button><hr><h2>Período</h2><button class="btn" onclick="endPeriod()">Cerrar período / preparar siguiente</button><button class="btn" onclick="editPeriod()">Editar período</button><hr><button class="btn danger" onclick="finish()">Finalizar partido</button><button class="btn" onclick="exportGame()">Exportar registro JSON</button><button class="btn" onclick="newGame()">Nuevo partido</button></section><section class="card"><h2>Historial de acciones</h2><ol class="history">'+S.events.slice(0,60).map(e=>'<li><small>'+esc(e.period)+' · '+esc(e.time)+'</small><b>'+esc(e.type)+'</b><span>'+esc(e.team)+' '+esc(e.person)+'</span><small>'+esc(e.detail)+'</small></li>').join("")+'</ol></section></div>'}
+window.setupSave=()=>{const nm={home:$("homeName").value.trim()||"LOCAL",away:$("awayName").value.trim()||"VISITA"};for(const side of ["home","away"]){let t=S[side],n=0;t.coach=$ (side+"Coach").value;t.assistant=$(side+"Assistant").value;t.players.forEach((p,i)=>{p.no=$(side+"No"+i).value||String(i+1);p.name=$(side+"Name"+i).value.trim();p.active=$(side+"Start"+i).checked;if(p.active)n++;p.points=0;p.fouls=0;p.seconds=0;p.out=false});if(n!==5){alert("Elegí exactamente cinco titulares para "+nm[side]);return}t.score=0;t.fouls=0}S.homeName=nm.home;S.awayName=nm.away;S.date=$("date").value;S.venue=$("venue").value;S.periodMin=Math.max(1,+$("pm").value||10);S.otMin=Math.max(1,+$("om").value||5);S.remaining=S.periodMin*60;S.period=1;S.ot=0;S.kind="Q";S.running=false;S.status="ready";S.events=[];S.undo=[];S.periodScores=[];log("Planteles confirmados","","","Cinco titulares por equipo");save();alert("Planteles confirmados. El reloj está detenido.")}
+window.saveRoster=side=>{S.rosters=S.rosters||{};S.rosters[side]=JSON.parse(JSON.stringify(S[side]));localStorage.setItem(KEY,JSON.stringify(S));alert("Plantel guardado en este navegador.")};window.loadRoster=side=>{if(!S.rosters?.[side])return alert("No hay plantel guardado.");S[side]=S.rosters[side];render()};
+window.resumeGame=()=>{S.status="ready";save()};
+window.clockToggle=()=>{if(S.status==="ready"){S.status="live";log("Partido iniciado","","","El reloj se inicia por acción del operador")}if(S.status!=="live")return;S.running=!S.running;stamp=S.running?Date.now():0;log(S.running?"Reloj iniciado":"Reloj detenido","","",fmt(S.remaining));save()};
+function tick(){if(S.running&&stamp){const now=Date.now(),d=Math.floor((now-stamp)/1000);if(d>0){S.remaining=Math.max(0,S.remaining-d);stamp+=d*1000;if(!S.remaining){S.running=false;stamp=0;log("Fin de período","","",S.kind==="OT"?"Suplementario "+S.ot:"Cuarto "+S.period);periodPrompt()}save()}}if(S.halfRunning){S.half=Math.max(0,S.half-.25);if(!S.half){S.halfRunning=false;log("Fin del entretiempo","","","Aviso; reloj de juego detenido");alert("Terminó el entretiempo.")}if(Math.floor(S.half*4)%4===0)save()}}
+function periodPrompt(){if(S.kind==="Q"&&S.period===2&&confirm("Fin del segundo cuarto. ¿Iniciar entretiempo de 10 minutos?")){S.half=600;S.halfRunning=true}if(S.kind==="Q"&&S.period===4){if(S.home.score===S.away.score){if(confirm("Empate. ¿Preparar suplementario?"))nextPeriod(true);else finish(false)}else if(confirm("¿Finalizar partido?"))finish(false);else nextPeriod(false);return}if(S.kind==="OT"){if(S.home.score===S.away.score){if(confirm("Sigue empatado. ¿Agregar otro suplementario?"))nextPeriod(true);else finish(false)}else if(confirm("¿Finalizar partido?"))finish(false);else nextPeriod(true);return}if(confirm("¿Preparar el siguiente período?"))nextPeriod(false)}
+function nextPeriod(ot){S.running=false;stamp=0;if(ot){S.kind="OT";S.ot++;S.remaining=S.otMin*60}else{S.kind="Q";S.period++;S.remaining=S.periodMin*60}log("Período preparado","","",S.kind==="OT"?"Suplementario "+S.ot:"Cuarto "+S.period);save();if(confirm("¿Cambiar la formación?"))alert("Usá el botón Cambio junto al jugador que sale.")}
+window.endPeriod=()=>{if(S.running)return alert("Pausá el reloj antes de cerrar el período.");if(confirm("¿Cerrar el período actual?"))periodPrompt()};
+window.editPeriod=()=>{if(S.running)return alert("Pausá el reloj primero.");const v=prompt("Ingresá período: 1, 2, 3, 4 u OT",""+(S.kind==="OT"?"OT":S.period));if(v===null)return;act("Corrección de período",()=>{if(/^OT$/i.test(v)){S.kind="OT";S.ot=Math.max(1,S.ot)}else if(/^[1-4]$/.test(v)){S.kind="Q";S.period=+v}log("Corrección de período","","",v)})};
+window.score=(side,id,n)=>act("Conversión "+S[side+"Name"]+" · #"+S[side].players.find(p=>p.id===id).no+" · +"+n,()=>{const p=S[side].players.find(p=>p.id===id);if(!p.active||p.out)return;p.points+=n;S[side].score+=n;log("Conversión",side,"#"+p.no+" "+p.name,"+"+n+" puntos")});
+window.foul=(side,id)=>{const p=S[side].players.find(x=>x.id===id),kind=prompt("Tipo: personal, técnica, antideportiva o descalificante","personal");if(!kind)return;act("Falta "+S[side+"Name"]+" · #"+p.no,()=>{p.fouls++;S[side].fouls++;if(/descalificante/i.test(kind))p.out=true;log("Falta "+kind,side,"#"+p.no+" "+p.name,"Sanción registrada; revisar reglas aplicables")})};
+window.disqualify=(side,id)=>{const p=S[side].players.find(x=>x.id===id);if(confirm("¿Registrar descalificación de #"+p.no+" "+p.name+"?"))act("Descalificación #"+p.no,()=>{p.out=true;log("Descalificación",side,"#"+p.no+" "+p.name,"Manual")})};
+window.sub=(side,id)=>{const t=S[side],out=t.players.find(p=>p.id===id);if(!out.active)return;const list=t.players.filter(p=>!p.active&&!p.out);if(!list.length)return alert("No hay jugadores disponibles en el banco.");const no=prompt("Sale #"+out.no+". Ingresá número del jugador que entra:\n"+list.map(p=>"#"+p.no+" "+p.name).join("\n"));if(no===null)return;const inn=list.find(p=>p.no===no.trim());if(!inn)return alert("Número no encontrado.");act("Cambio "+S[side+"Name"]+" · #"+out.no+" por #"+inn.no,()=>{out.active=false;inn.active=true;log("Sustitución",side,"#"+out.no+" por #"+inn.no,"Tiempo jugado aproximado; revisar planilla")})};
+window.staffFoul=(side,role)=>{const kind=prompt("Sanción para "+role+": técnica o descalificante","técnica");if(!kind)return;act("Sanción "+S[side+"Name"]+" · "+role,()=>log("Sanción "+kind,side,role,"Registrada manualmente"))};
+window.teamFoul=side=>act("Falta de equipo "+S[side+"Name"],()=>{S[side].fouls++;log("Falta de equipo",side,"","Registro manual")});
+window.adjustClock=()=>{if(S.running)return alert("Pausá el reloj antes de corregirlo.");const v=prompt("Tiempo restante MM:SS, segundos, o ajuste +15 / -10",fmt(S.remaining));if(v===null)return;let n;if(/^[+-]\d+$/.test(v.trim()))n=S.remaining+Number(v);else if(/^\d+$/.test(v.trim()))n=Number(v);else{const m=v.trim().match(/^(\d+):(\d{2})$/);if(!m||+m[2]>59)return alert("Formato inválido.");n=+m[1]*60 + +m[2]}act("Corrección del reloj",()=>{const old=fmt(S.remaining);S.remaining=Math.max(0,n);log("Corrección de reloj","","",old+" → "+fmt(S.remaining))})};
+window.undoLast=()=>{if(!S.undo.length)return;const a=S.undo.pop(),stack=S.undo;S=JSON.parse(a.before);S.undo=stack;S.running=false;stamp=0;log("Acción deshecha","","",a.label);save()};
+window.halfToggle=()=>{S.halfRunning=!S.halfRunning;if(S.halfRunning&&S.half<=0)S.half=600;log(S.halfRunning?"Entretiempo iniciado":"Entretiempo pausado","","",fmt(S.half));save()};
+window.finish=(ask=true)=>{if(ask&&!confirm("¿Confirmar cierre del partido?"))return;S.running=false;S.halfRunning=false;S.status="finished";log("Partido finalizado","","",S.home.score+" - "+S.away.score);save()};
+window.exportGame=()=>{const a=document.createElement("a"),b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});a.href=URL.createObjectURL(b);a.download="partido-"+(S.date||"CAE")+".json";a.click();URL.revokeObjectURL(a.href)};
+window.newGame=()=>{if(!confirm("¿Empezar un partido nuevo? Exportá el registro actual primero."))return;const rosters=S.rosters;S=fresh();S.rosters=rosters;save()};
+window.addEventListener("storage",e=>{if(e.key===KEY){try{S=JSON.parse(e.newValue);render()}catch{}}});document.addEventListener("DOMContentLoaded",()=>{render();setInterval(tick,250)});})();
