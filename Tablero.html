@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Tablero</title>
+        <link rel="stylesheet" href="reset.css">
+        <link rel="stylesheet" href="estilo.css">
+    </head>
+
+    <script src="codigo.js"></script>
+    
+    <body class="tablero">
+        <div class="equipos">
+            <h2>LOCAL</h2>
+            <ul class="jugadores">
+                
+                <p>N°   -  Foules</p>
+                <li>4: <span id="fjv1">5</span></li>
+                <li>5: </li>
+                <li>6:</li>
+                <li>7:</li>
+                <li>8</li>
+                <li>9</li>
+                <li>10</li>
+                <li>11</li>
+                <li>12</li>
+                <li>13</li>
+                <li>14</li>
+                <li>15:</li>
+                
+            </ul>
+                
+            <p class="puntaje">
+                Puntos <br><span id="puntosLocal">0</span>
+                <br><br>Foules <br><span id="foulesLocal">0</span>
+            </p>
+        </div>
+
+        <div class="equipos">
+            <h2>VISITA</h2>
+            <p class="puntaje">
+                Puntos <br><span id="puntosVisita">0</span>
+                <br><br>Foules <br><span id="foulesVisita">0</span>
+            </p>
+            <ul class="jugadores">
+                
+                <p>N°   -  Foules</p>
+                <li>Jugador 4    <span id="fjv1">-</span></li>
+                <li>Jugador 5</li>
+                <li>Jugador 6</li>
+                <li>Jugador 7</li>
+                <li>Jugador 8</li>
+                <li>Jugador 9</li>
+                <li>Jugador 10</li>
+                <li>Jugador 11</li>
+                <li>Jugador 12</li>
+                <li>Jugador 13</li>
+                <li>Jugador 14</li>
+                <li>Jugador 15</li>
+                
+            </ul>
+
+            
+        </div>
+        <div class="botones">
+            <br>
+            <button onclick="sumarPuntosLocal()">+1 Local</button>
+            <button onclick="sumarFoulLocal()">Foul Local</button>
+            <button onclick="sumarPuntosVisita()">+1 Visita</button>
+            <button onclick="sumarFoulVisita()">Foul Visita</button>
+        </div>
+
+
+    </body>
+
+</html>

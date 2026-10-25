@@ -1,0 +1,58 @@
+body{
+    }
+h2{
+    color: red;
+    background-color: black;
+    text-align: center;
+    font-size: 50px;
+    padding: 25px;
+    margin-bottom: 0%;
+}
+
+.tablero{
+    background-color: gray;
+    display: inline-block;
+    width: 850px;
+    
+       
+}
+.equipos{
+    display: inline-block;
+    width: 400px;
+}
+ul p{
+    padding-bottom: 10px;
+}
+ul li{
+    padding-bottom: 1px ;
+    padding-top: 1px;
+}
+.jugadores{
+    display: inline-block;
+    width: 100px;
+    height: 240px;
+    background-color: black;
+    color: red;
+    margin: 0px;
+    padding: 10px 25px 0px 20px;
+    border: 0px;
+    list-style: square;
+    
+
+    
+}
+.puntaje{
+    color: red;
+    background-color: black;
+    font-weight: bold;
+    display: inline-block;
+    padding: 10px 20px 25px 30px;
+    text-align: center;
+    font-size: 40px;
+    width: 200px;
+    margin: 0px;
+    border: 0px;
+    
+    
+
+}
